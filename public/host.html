@@ -113,7 +113,8 @@
     </div>
 
     <div class="card">
-      <h2>설정</h2>
+      <h2 style="cursor:pointer; user-select:none; margin-bottom:0" id="settingsToggle">⚙️ 설정 <span class="muted" style="font-weight:400">(클릭해서 열기 — 투사 중에는 닫아두세요)</span></h2>
+      <div id="settingsBody" class="hidden" style="margin-top:12px">
       <label>물품 목록 (한 줄에 하나: 이름,시작가,허영|가치) — 분류는 끝날 때까지 학생에게 보이지 않습니다</label>
       <textarea id="itemsText"></textarea>
       <div class="row2">
@@ -122,6 +123,7 @@
       </div>
       <button class="end" id="setupBtn">설정 적용</button>
       <div class="err" id="setupErr"></div>
+      </div>
     </div>
   </div>
 
@@ -142,6 +144,8 @@ $('itemsText').value = [
   '명문대,5,허영', '의대,5,허영', '잘생긴 외모,3,허영', '인플루언서,3,허영', '억대연봉,5,허영',
   '평안,3,가치', '가족,3,가치', '친구,3,가치', '믿음,3,가치', '하나님,5,가치',
 ].join('\n');
+
+$('settingsToggle').onclick = () => $('settingsBody').classList.toggle('hidden');
 
 $('setupBtn').onclick = () => {
   socket.emit('host:setup', {
