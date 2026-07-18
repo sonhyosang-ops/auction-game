@@ -1,0 +1,17 @@
+{
+  "name": "auction-game",
+  "version": "1.0.0",
+  "description": "수업용 모의 경매 게임",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.7.5"
+  }
+}

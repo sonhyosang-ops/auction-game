@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>인생 경매 — 호스트</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+         background: #1f2a26; color: #f2efe6; min-height: 100vh; padding: 24px; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+  .card { background: #2b3a34; border: 1px solid #3d5049; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+  h1 { font-size: 26px; margin-bottom: 6px; }
+  h2 { font-size: 18px; margin-bottom: 12px; color: #b9d8cc; }
+  h3 { font-size: 17px; margin: 16px 0 8px; }
+  .muted { color: #93a89e; font-size: 14px; }
+  .price { font-size: 96px; font-weight: 800; letter-spacing: -3px; line-height: 1.1; }
+  .itemname { font-size: 40px; font-weight: 700; margin: 8px 0; }
+  .timer { font-size: 72px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .timer.hot { color: #ff7b6b; }
+  .bidder { font-size: 24px; color: #ffd98a; margin-top: 4px; min-height: 32px; }
+  button { font-size: 16px; padding: 12px 18px; border: 0; border-radius: 10px; cursor: pointer;
+           font-weight: 700; margin-right: 8px; margin-top: 8px; }
+  .go { background: #d97a45; color: #fff; font-size: 20px; padding: 16px 28px; }
+  .end { background: #4a5d56; color: #fff; }
+  .danger { background: #7a3a34; color: #fff; }
+  button:disabled { opacity: .35; cursor: default; }
+  textarea, input[type=number] { width: 100%; font-size: 15px; padding: 10px; border-radius: 8px;
+           border: 1px solid #4a5d56; background: #223029; color: #f2efe6; margin: 6px 0 12px; }
+  textarea { height: 150px; resize: vertical; }
+  label { font-size: 14px; color: #b9d8cc; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td, th { padding: 7px 6px; border-bottom: 1px solid #3d5049; text-align: left; }
+  .qr { background: #fff; border-radius: 12px; padding: 12px; text-align: center; }
+  .qr img { width: 100%; max-width: 260px; }
+  .qr .url { color: #333; font-size: 13px; word-break: break-all; margin-top: 6px; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; margin-left: 6px; }
+  .on { background: #2f6b5e; color: #d6f0e6; }
+  .off { background: #55423d; color: #e8c9c2; }
+  .sold { color: #ffd98a; }
+  .vanish { color: #8d8574; text-decoration: line-through; }
+  .keep { color: #8fe3c4; font-weight: 700; }
+  .flash { background: #3f5248; border: 1px solid #6f8f80; border-radius: 12px; padding: 16px;
+           font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px; }
+  .reveal { border-radius: 12px; padding: 16px 20px; margin-top: 12px; line-height: 1.7; }
+  .reveal.vanity { background: #46362c; border: 1px solid #7a5c42; }
+  .reveal.value { background: #26433a; border: 1px solid #3f7a63; }
+  .hidden { display: none; }
+  .err { color: #ff9d8f; min-height: 20px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <div><!-- 왼쪽: 메인 무대 (빔프로젝터 투사 영역) -->
+    <div id="flash" class="flash hidden"></div>
+
+    <div class="card" id="stage">
+      <div id="stageIdle">
+        <h1>⏳ 인생 경매</h1>
+        <p class="muted" id="idleMsg">여러분에게 인생의 시간이 주어졌습니다. 무엇에 투자하시겠습니까?</p>
+        <p class="muted" style="margin-top:6px">⚠️ 한 물품에 입찰하는 순간, 다른 물품에는 입찰할 수 없습니다.</p>
+        <button class="go" id="startBtn">▶ 다음 물품 경매 시작</button>
+        <div class="err" id="hostErr"></div>
+      </div>
+      <div id="stageActive" class="hidden">
+        <div class="muted" id="itemBadge"></div>
+        <div class="itemname" id="itemName"></div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+          <div>
+            <div class="muted">현재 투자액</div>
+            <div class="price"><span id="curPrice">0</span><small style="font-size:32px">년</small></div>
+            <div class="bidder" id="topBidder"></div>
+          </div>
+          <div class="timer" id="timer">--</div>
+        </div>
+        <button class="end" id="endNowBtn">⏹ 지금 종료 (낙찰/유찰 확정)</button>
+      </div>
+      <div id="stageEnded" class="hidden">
+        <h1>🏁 경매가 끝났습니다 — 이제 진실을 공개합니다</h1>
+        <div class="reveal vanity">
+          <h3>💨 첫 번째 목록 — 있으면 좋아 보이지만, 사라지는 것들</h3>
+          <table id="vanityTable"></table>
+        </div>
+        <div class="reveal value">
+          <h3>🌱 두 번째 목록 — 반드시 지켜야 할, 없어지지 않는 것들</h3>
+          <table id="valueTable"></table>
+        </div>
+        <p class="muted" style="margin-top:14px; font-size:16px; line-height:1.7">
+          💬 이야기 나누기: 나는 무엇에 인생을 투자했나요? 그것은 사라지는 것이었나요, 남는 것이었나요?<br>
+          정말 지켜야 할 것을 지키기 위해, 나의 시간을 어디에 쓰시겠습니까?
+        </p>
+        <button class="danger" id="resetBtn">🔄 게임 초기화 (시간 리셋)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>물품 목록</h2>
+      <table id="itemTable"></table>
+    </div>
+  </div>
+
+  <div><!-- 오른쪽: QR / 참가자 / 설정 -->
+    <div class="card qr">
+      <img id="qrImg" alt="참가용 QR 코드">
+      <div class="url" id="joinUrl"></div>
+    </div>
+
+    <div class="card">
+      <h2>참가자 <span id="pCount"></span></h2>
+      <table id="pTable"></table>
+    </div>
+
+    <div class="card">
+      <h2>설정</h2>
+      <label>물품 목록 (한 줄에 하나: 이름,시작가,허영|가치) — 분류는 끝날 때까지 학생에게 보이지 않습니다</label>
+      <textarea id="itemsText"></textarea>
+      <div class="row2">
+        <div><label>인생의 시간(년)</label><input type="number" id="startPoints" value="80"></div>
+        <div><label>물품당 제한시간(초)</label><input type="number" id="itemSeconds" value="30"></div>
+      </div>
+      <button class="end" id="setupBtn">설정 적용</button>
+      <div class="err" id="setupErr"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const $ = (id) => document.getElementById(id);
+let S = null, clockOffset = 0, flashTimer = null;
+const fmt = (n) => Number(n).toLocaleString('ko-KR');
+
+const joinUrl = location.origin + '/';
+$('qrImg').src = '/qr?text=' + encodeURIComponent(joinUrl);
+$('joinUrl').textContent = joinUrl;
+
+$('itemsText').value = [
+  '명문대,5,허영', '의대,5,허영', '잘생긴 외모,3,허영', '인플루언서,3,허영', '억대연봉,5,허영',
+  '평안,3,가치', '가족,3,가치', '친구,3,가치', '믿음,3,가치', '하나님,5,가치',
+].join('\n');
+
+$('setupBtn').onclick = () => {
+  socket.emit('host:setup', {
+    itemsText: $('itemsText').value,
+    startPoints: $('startPoints').value,
+    itemSeconds: $('itemSeconds').value,
+  }, (res) => { $('setupErr').textContent = res.ok ? '' : res.error; });
+};
+$('startBtn').onclick = () => socket.emit('host:start-item', {}, (res) => {
+  $('hostErr').textContent = res.ok ? '' : res.error;
+});
+$('endNowBtn').onclick = () => socket.emit('host:end-item', {}, () => {});
+$('resetBtn').onclick = () => {
+  if (confirm('모든 결과와 시간을 초기화할까요?')) socket.emit('host:reset', {}, () => {});
+};
+
+socket.on('state', (s) => { S = s; clockOffset = s.serverNow - Date.now(); render(); });
+
+function render() {
+  const active = S.activeItem;
+  $('stageIdle').classList.toggle('hidden', !!active || S.phase === 'ended');
+  $('stageActive').classList.toggle('hidden', !active);
+  $('stageEnded').classList.toggle('hidden', S.phase !== 'ended');
+
+  if (S.lastResult && Date.now() + clockOffset - S.lastResult.at < 8000) {
+    const r = S.lastResult;
+    $('flash').textContent = r.type === 'sold'
+      ? `🔨 [${r.itemName}] ${r.nickname}님, 인생 ${fmt(r.amount)}년 투자로 낙찰!`
+      : `😶 [${r.itemName}] 아무도 인생을 투자하지 않아 유찰`;
+    $('flash').classList.remove('hidden');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => $('flash').classList.add('hidden'), 8000);
+  }
+
+  if (!active && S.phase !== 'ended') {
+    const done = S.items.filter((i) => i.status !== 'pending' && i.status !== 'active').length;
+    $('idleMsg').textContent = S.items.length
+      ? `물품 ${done}/${S.items.length} 진행됨 · 준비되면 다음 물품을 시작하세요.`
+      : '오른쪽에서 물품을 설정하세요.';
+  }
+
+  if (active) {
+    $('itemBadge').textContent = `물품 ${S.activeIndex + 1} / ${S.items.length}`;
+    $('itemName').textContent = active.name;
+    const bid = active.currentBid;
+    $('curPrice').textContent = fmt(bid ? bid.amount : active.startPrice);
+    $('topBidder').textContent = bid ? `최고 입찰: ${bid.nickname}` : '첫 입찰을 기다리는 중…';
+  }
+
+  // 물품 목록 (게임 중에는 분류를 표시하지 않음 — 프로젝터에 보이기 때문)
+  let ih = '<tr><th>#</th><th>물품</th><th>시작가</th><th>상태</th></tr>';
+  S.items.forEach((it, i) => {
+    const st = it.status === 'sold' ? `<span class="sold">낙찰 — ${it.currentBid.nickname} (${fmt(it.currentBid.amount)}년)</span>`
+      : it.status === 'passed' ? '유찰'
+      : it.status === 'active' ? '▶ 진행 중' : '대기';
+    ih += `<tr><td>${i + 1}</td><td>${it.name}</td><td>${fmt(it.startPrice)}년</td><td>${st}</td></tr>`;
+  });
+  $('itemTable').innerHTML = ih;
+
+  // 참가자
+  $('pCount').textContent = `(${S.participants.length}명)`;
+  let ph = '<tr><th>이름</th><th>남은 시간</th><th>투자한 곳</th><th></th></tr>';
+  for (const p of [...S.participants].sort((a, b) => a.id - b.id)) {
+    const committed = p.committedItemId !== null ? (S.items.find((i) => i.id === p.committedItemId) || {}).name || '' : '—';
+    ph += `<tr><td>${p.nickname}</td><td>${fmt(p.points)}년</td><td>${committed}</td>` +
+          `<td><span class="pill ${p.connected ? 'on' : 'off'}">${p.connected ? '접속' : '끊김'}</span></td></tr>`;
+  }
+  $('pTable').innerHTML = ph;
+
+  // 종료 화면: 두 카테고리 공개
+  if (S.phase === 'ended') {
+    const winnerCell = (it) => it.status === 'sold' ? `${it.currentBid.nickname} · ${fmt(it.currentBid.amount)}년` : '유찰';
+    const bidders = (it) => S.participants
+      .filter((p) => p.committedItemId === it.id && !(it.currentBid && it.currentBid.nickname === p.nickname))
+      .map((p) => p.nickname).join(', ');
+    let vh = '<tr><th>물품</th><th>낙찰</th><th>함께 입찰</th></tr>';
+    let kh = vh;
+    for (const it of S.items) {
+      const row = `<tr><td class="${it.cat === 'vanity' ? 'vanish' : 'keep'}">${it.name}</td>` +
+                  `<td>${winnerCell(it)}</td><td>${bidders(it) || '—'}</td></tr>`;
+      if (it.cat === 'vanity') vh += row; else kh += row;
+    }
+    $('vanityTable').innerHTML = vh;
+    $('valueTable').innerHTML = kh;
+  }
+}
+
+setInterval(() => {
+  if (!S || !S.endsAt || !S.activeItem) return;
+  const remain = Math.max(0, S.endsAt - (Date.now() + clockOffset));
+  const sec = Math.ceil(remain / 1000);
+  $('timer').textContent = sec;
+  $('timer').classList.toggle('hot', sec <= 5);
+}, 200);
+</script>
+</body>
+</html>
