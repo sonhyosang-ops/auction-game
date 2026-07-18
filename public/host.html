@@ -141,6 +141,7 @@
         <div><label>물품당 제한시간(초)</label><input type="number" id="itemSeconds" value="30"></div>
       </div>
       <button class="end" id="setupBtn">설정 적용</button>
+      <button class="danger" id="resetBtn2">🔄 게임 전체 초기화</button>
       <div class="err" id="setupErr"></div>
       </div>
     </div>
@@ -177,9 +178,11 @@ $('startBtn').onclick = () => socket.emit('host:start-item', {}, (res) => {
   $('hostErr').textContent = res.ok ? '' : res.error;
 });
 $('endNowBtn').onclick = () => socket.emit('host:end-item', {}, () => {});
-$('resetBtn').onclick = () => {
-  if (confirm('모든 결과와 시간을 초기화할까요?')) socket.emit('host:reset', {}, () => {});
+const doReset = () => {
+  if (confirm('모든 결과와 시간을 초기화할까요? (초기화 후 설정을 다시 적용하세요)')) socket.emit('host:reset', {}, () => {});
 };
+$('resetBtn').onclick = doReset;
+$('resetBtn2').onclick = doReset;
 
 socket.on('state', (s) => { S = s; clockOffset = s.serverNow - Date.now(); render(); });
 
