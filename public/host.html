@@ -75,6 +75,7 @@
             <div class="muted" id="idleNextPrice"></div>
           </div>
         </div>
+        <button class="end" id="soundBtn">🎺 경매 시작 알림음</button>
         <button class="go" id="startBtn">▶ 다음 물품 경매 시작</button>
         <div class="err" id="hostErr"></div>
       </div>
@@ -149,6 +150,7 @@
 
 </div>
 
+<audio id="startSound" src="/sounds/start.m4a" preload="auto"></audio>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
@@ -178,6 +180,24 @@ $('startBtn').onclick = () => socket.emit('host:start-item', {}, (res) => {
   $('hostErr').textContent = res.ok ? '' : res.error;
 });
 $('endNowBtn').onclick = () => socket.emit('host:end-item', {}, () => {});
+// 경매 시작 알림음: 버튼 클릭으로 재생, 20초 후 자동 정지 (재클릭 시 즉시 정지)
+const startSound = $('startSound');
+let soundTimer = null;
+function stopSound() {
+  clearTimeout(soundTimer);
+  soundTimer = null;
+  startSound.pause();
+  startSound.currentTime = 0;
+  $('soundBtn').textContent = '🎺 경매 시작 알림음';
+}
+$('soundBtn').onclick = () => {
+  if (soundTimer) { stopSound(); return; }
+  startSound.currentTime = 0;
+  startSound.play();
+  $('soundBtn').textContent = '⏹ 알림음 정지';
+  soundTimer = setTimeout(stopSound, 20000);
+};
+
 const doReset = () => {
   if (confirm('모든 결과와 시간을 초기화할까요? (초기화 후 설정을 다시 적용하세요)')) socket.emit('host:reset', {}, () => {});
 };
