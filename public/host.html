@@ -43,6 +43,12 @@
   .keep { color: #8fe3c4; font-weight: 700; }
   .flash { background: #3f5248; border: 1px solid #6f8f80; border-radius: 12px; padding: 16px;
            font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px; }
+  .preview { display: flex; gap: 16px; align-items: center; background: #223029;
+           border: 1px solid #3d5049; border-radius: 12px; padding: 14px 18px; margin-top: 18px; }
+  .preview.hidden { display: none; }
+  .preview img { width: 96px; border-radius: 10px; }
+  .preview .pname { font-size: 24px; font-weight: 700; }
+  .itemimg { width: 230px; border-radius: 14px; flex-shrink: 0; }
   .reveal { border-radius: 12px; padding: 16px 20px; margin-top: 12px; line-height: 1.7; }
   .reveal.vanity { background: #46362c; border: 1px solid #7a5c42; }
   .reveal.value { background: #26433a; border: 1px solid #3f7a63; }
@@ -61,19 +67,36 @@
         <h1>⏳ 인생 경매</h1>
         <p class="muted" id="idleMsg">여러분에게 인생의 시간이 주어졌습니다. 무엇에 투자하시겠습니까?</p>
         <p class="muted" style="margin-top:6px">⚠️ 한 물품에 입찰하는 순간, 다른 물품에는 입찰할 수 없습니다.</p>
+        <div id="idleNext" class="preview hidden">
+          <img id="idleNextImg" style="width:150px" alt="">
+          <div>
+            <div class="muted" id="idleNextRound"></div>
+            <div class="pname" style="font-size:32px" id="idleNextName"></div>
+            <div class="muted" id="idleNextPrice"></div>
+          </div>
+        </div>
         <button class="go" id="startBtn">▶ 다음 물품 경매 시작</button>
         <div class="err" id="hostErr"></div>
       </div>
       <div id="stageActive" class="hidden">
         <div class="muted" id="itemBadge"></div>
-        <div class="itemname" id="itemName"></div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-          <div>
+        <div style="display:flex; gap:26px; align-items:flex-start; margin-top:10px">
+          <img id="itemImg" class="itemimg hidden" alt="">
+          <div style="flex:1">
+            <div class="itemname" id="itemName"></div>
             <div class="muted">현재 투자액</div>
             <div class="price"><span id="curPrice">0</span><small style="font-size:32px">년</small></div>
             <div class="bidder" id="topBidder"></div>
           </div>
           <div class="timer" id="timer">--</div>
+        </div>
+        <div id="nextStrip" class="preview hidden">
+          <img id="nextImg" alt="">
+          <div>
+            <div class="muted">다음 물품</div>
+            <div class="pname" id="nextName"></div>
+            <div class="muted" id="nextPrice"></div>
+          </div>
         </div>
         <button class="end" id="endNowBtn">⏹ 지금 종료 (낙찰/유찰 확정)</button>
       </div>
@@ -95,10 +118,6 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>물품 목록</h2>
-      <table id="itemTable"></table>
-    </div>
   </div>
 
   <div><!-- 오른쪽: QR / 참가자 / 설정 -->
@@ -141,8 +160,8 @@ $('qrImg').src = '/qr?text=' + encodeURIComponent(joinUrl);
 $('joinUrl').textContent = joinUrl;
 
 $('itemsText').value = [
-  '명문대,5,허영', '의대,5,허영', '잘생긴 외모,3,허영', '인플루언서,3,허영', '억대연봉,5,허영',
-  '평안,3,가치', '가족,3,가치', '친구,3,가치', '믿음,3,가치', '하나님,5,가치',
+  '명문대,10,허영', '의대,15,허영', '외모지상,10,허영', '인플루언서,10,허영', '억대연봉,15,허영',
+  '평안,10,가치', '가족,15,가치', '친구,10,가치', '믿음,15,가치', '하나님,20,가치',
 ].join('\n');
 
 $('settingsToggle').onclick = () => $('settingsBody').classList.toggle('hidden');
@@ -180,30 +199,46 @@ function render() {
     flashTimer = setTimeout(() => $('flash').classList.add('hidden'), 8000);
   }
 
+  // 부(round) 안에서의 순번: "1부 · 물품 2/5"
+  const roundBadge = (it) => {
+    const rs = S.items.filter((i) => i.round === it.round);
+    return `${it.round}부 · 물품 ${rs.findIndex((i) => i.id === it.id) + 1} / ${rs.length}`;
+  };
+
   if (!active && S.phase !== 'ended') {
     const done = S.items.filter((i) => i.status !== 'pending' && i.status !== 'active').length;
     $('idleMsg').textContent = S.items.length
       ? `물품 ${done}/${S.items.length} 진행됨 · 준비되면 다음 물품을 시작하세요.`
-      : '오른쪽에서 물품을 설정하세요.';
+      : '오른쪽 설정에서 물품을 등록하세요.';
+    const nx = S.nextItem;
+    $('idleNext').classList.toggle('hidden', !nx);
+    if (nx) {
+      const firstOfRound2 = nx.round === 2 && !S.items.some((i) => i.round === 2 && i.status !== 'pending');
+      $('idleNextRound').textContent = firstOfRound2 ? '💫 1부 종료 — 2부 첫 물품' : `다음 물품 (${roundBadge(nx)})`;
+      $('idleNextName').textContent = nx.name;
+      $('idleNextPrice').textContent = `시작가 ${fmt(nx.startPrice)}년`;
+      $('idleNextImg').src = nx.img || '';
+      $('idleNextImg').style.display = nx.img ? '' : 'none';
+    }
   }
 
   if (active) {
-    $('itemBadge').textContent = `물품 ${S.activeIndex + 1} / ${S.items.length}`;
+    $('itemBadge').textContent = roundBadge(active);
     $('itemName').textContent = active.name;
+    $('itemImg').classList.toggle('hidden', !active.img);
+    if (active.img) $('itemImg').src = active.img;
     const bid = active.currentBid;
     $('curPrice').textContent = fmt(bid ? bid.amount : active.startPrice);
-    $('topBidder').textContent = bid ? `최고 입찰: ${bid.nickname}` : '첫 입찰을 기다리는 중…';
+    $('topBidder').textContent = bid ? `최고 입찰: ${bid.nickname}` : `시작가 ${fmt(active.startPrice)}년 — 첫 입찰을 기다리는 중…`;
+    const nx = S.nextItem;
+    $('nextStrip').classList.toggle('hidden', !nx);
+    if (nx) {
+      $('nextName').textContent = nx.name;
+      $('nextPrice').textContent = `시작가 ${fmt(nx.startPrice)}년`;
+      $('nextImg').src = nx.img || '';
+      $('nextImg').style.display = nx.img ? '' : 'none';
+    }
   }
-
-  // 물품 목록 (게임 중에는 분류를 표시하지 않음 — 프로젝터에 보이기 때문)
-  let ih = '<tr><th>#</th><th>물품</th><th>시작가</th><th>상태</th></tr>';
-  S.items.forEach((it, i) => {
-    const st = it.status === 'sold' ? `<span class="sold">낙찰 — ${it.currentBid.nickname} (${fmt(it.currentBid.amount)}년)</span>`
-      : it.status === 'passed' ? '유찰'
-      : it.status === 'active' ? '▶ 진행 중' : '대기';
-    ih += `<tr><td>${i + 1}</td><td>${it.name}</td><td>${fmt(it.startPrice)}년</td><td>${st}</td></tr>`;
-  });
-  $('itemTable').innerHTML = ih;
 
   // 참가자
   $('pCount').textContent = `(${S.participants.length}명)`;
@@ -224,7 +259,8 @@ function render() {
     let vh = '<tr><th>물품</th><th>낙찰</th><th>함께 입찰</th></tr>';
     let kh = vh;
     for (const it of S.items) {
-      const row = `<tr><td class="${it.cat === 'vanity' ? 'vanish' : 'keep'}">${it.name}</td>` +
+      const thumb = it.img ? `<img src="${it.img}" style="width:34px;border-radius:6px;vertical-align:middle;margin-right:8px">` : '';
+      const row = `<tr><td>${thumb}<span class="${it.cat === 'vanity' ? 'vanish' : 'keep'}">${it.name}</span></td>` +
                   `<td>${winnerCell(it)}</td><td>${bidders(it) || '—'}</td></tr>`;
       if (it.cat === 'vanity') vh += row; else kh += row;
     }

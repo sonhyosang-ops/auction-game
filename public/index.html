@@ -76,6 +76,7 @@
 
     <div id="itemCard" class="card hidden">
       <span class="badge" id="itemBadge"></span>
+      <div style="text-align:center; margin:6px 0 10px"><img id="sImg" style="max-width:170px; width:60%; border-radius:12px" alt=""></div>
       <h1 id="itemName"></h1>
       <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:10px;">
         <div>
@@ -196,7 +197,10 @@ function render() {
     return;
   }
 
-  $('itemBadge').textContent = `물품 ${S.activeIndex + 1} / ${S.items.length}`;
+  const roundItems = S.items.filter((i) => i.round === active.round);
+  $('itemBadge').textContent = `${active.round}부 · 물품 ${roundItems.findIndex((i) => i.id === active.id) + 1} / ${roundItems.length}`;
+  $('sImg').src = active.img || '';
+  $('sImg').style.display = active.img ? '' : 'none';
   $('itemName').textContent = active.name;
   const bid = active.currentBid;
   $('curPrice').textContent = fmt(bid ? bid.amount : active.startPrice);
@@ -226,7 +230,8 @@ function renderEnd(meP) {
   let vh = '<tr><th>물품</th><th>낙찰</th><th>함께 입찰</th></tr>';
   let kh = vh;
   for (const it of S.items) {
-    const row = `<tr><td class="${it.cat === 'vanity' ? 'vanish' : 'keep'}">${it.name}</td>` +
+    const thumb = it.img ? `<img src="${it.img}" style="width:26px;border-radius:5px;vertical-align:middle;margin-right:6px">` : '';
+    const row = `<tr><td>${thumb}<span class="${it.cat === 'vanity' ? 'vanish' : 'keep'}">${it.name}</span></td>` +
                 `<td>${winnerCell(it)}</td><td>${bidders(it) || '—'}</td></tr>`;
     if (it.cat === 'vanity') vh += row; else kh += row;
   }

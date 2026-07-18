@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
 const http = require('http');
@@ -32,17 +33,26 @@ app.get('/qr', async (req, res) => {
 //   분류는 경매가 모두 끝난 뒤 결과 화면에서만 공개된다.
 
 const DEFAULT_ITEMS = [
-  '명문대,5,허영',
-  '의대,5,허영',
-  '잘생긴 외모,3,허영',
-  '인플루언서,3,허영',
-  '억대연봉,5,허영',
-  '평안,3,가치',
-  '가족,3,가치',
-  '친구,3,가치',
-  '믿음,3,가치',
-  '하나님,5,가치',
+  '명문대,10,허영',
+  '의대,15,허영',
+  '외모지상,10,허영',
+  '인플루언서,10,허영',
+  '억대연봉,15,허영',
+  '평안,10,가치',
+  '가족,15,가치',
+  '친구,10,가치',
+  '믿음,15,가치',
+  '하나님,20,가치',
 ].join('\n');
+
+// public/items/<물품명>.png 등이 있으면 그 이미지를 물품과 함께 보여준다
+const ITEMS_DIR = path.join(__dirname, 'public', 'items');
+function findImg(name) {
+  for (const ext of ['png', 'jpg', 'jpeg', 'webp']) {
+    if (fs.existsSync(path.join(ITEMS_DIR, `${name}.${ext}`))) return `/items/${name}.${ext}`;
+  }
+  return null;
+}
 
 let state;
 let itemTimer = null;
@@ -76,6 +86,8 @@ function parseItems(text) {
         name,
         startPrice: Number.isFinite(price) && price > 0 ? price : 1,
         cat, // vanity(허영) | value(가치) — 종료 후에만 클라이언트에 공개
+        round: cat === 'vanity' ? 1 : 2, // 1부(억대연봉까지) / 2부
+        img: findImg(name),
         status: 'pending', // pending | active | sold | passed
         currentBid: null, // { token, nickname, amount }
       };
@@ -85,6 +97,9 @@ function parseItems(text) {
 function snapshot() {
   const ended = state.phase === 'ended';
   const activeItem = state.activeIndex >= 0 ? state.items[state.activeIndex] : null;
+  // 다음 물품 미리보기: 진행 중에는 같은 부(round) 안에서만 보여준다 (2부 스포일러 방지)
+  let nextItem = state.items.find((it) => it.status === 'pending') || null;
+  if (nextItem && activeItem && nextItem.round !== activeItem.round) nextItem = null;
   return {
     phase: state.phase,
     startPoints: state.startPoints,
@@ -98,6 +113,8 @@ function snapshot() {
       name: it.name,
       startPrice: it.startPrice,
       status: it.status,
+      round: it.round,
+      img: it.img,
       cat: ended ? it.cat : null, // 게임 중에는 분류를 숨긴다 (스포일러 방지)
       currentBid: it.currentBid ? { nickname: it.currentBid.nickname, amount: it.currentBid.amount } : null,
     })),
@@ -113,10 +130,15 @@ function snapshot() {
           id: activeItem.id,
           name: activeItem.name,
           startPrice: activeItem.startPrice,
+          round: activeItem.round,
+          img: activeItem.img,
           currentBid: activeItem.currentBid
             ? { nickname: activeItem.currentBid.nickname, amount: activeItem.currentBid.amount }
             : null,
         }
+      : null,
+    nextItem: nextItem
+      ? { id: nextItem.id, name: nextItem.name, startPrice: nextItem.startPrice, round: nextItem.round, img: nextItem.img }
       : null,
   };
 }
