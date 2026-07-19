@@ -24,6 +24,16 @@ app.get('/qr', async (req, res) => {
   }
 });
 
+// 알림음은 저장소에 포함하지 않는다 (비공개 파일).
+// 로컬: public/sounds/start.m4a 를 직접 두면 되고,
+// Render: Secret File 'start-sound.b64'(base64 텍스트)를 서버 시작 시 디코드해 생성한다.
+const SOUND_PATH = path.join(__dirname, 'public', 'sounds', 'start.m4a');
+const SOUND_SECRET = '/etc/secrets/start-sound.b64';
+if (!fs.existsSync(SOUND_PATH) && fs.existsSync(SOUND_SECRET)) {
+  fs.mkdirSync(path.dirname(SOUND_PATH), { recursive: true });
+  fs.writeFileSync(SOUND_PATH, Buffer.from(fs.readFileSync(SOUND_SECRET, 'utf8'), 'base64'));
+}
+
 // ---------- 게임 상태 (전부 메모리) ----------
 //
 // 게임의 의미:
