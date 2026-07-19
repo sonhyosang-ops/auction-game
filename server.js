@@ -17,7 +17,8 @@ app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host
 app.get('/qr', async (req, res) => {
   try {
     const text = String(req.query.text || '').slice(0, 500);
-    const png = await QRCode.toBuffer(text, { width: 480, margin: 1 });
+    const size = Math.min(1200, Math.max(120, parseInt(req.query.size, 10) || 480));
+    const png = await QRCode.toBuffer(text, { width: size, margin: 1 });
     res.type('png').send(png);
   } catch (e) {
     res.status(400).end();

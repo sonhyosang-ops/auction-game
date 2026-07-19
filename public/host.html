@@ -33,8 +33,14 @@
   table { width: 100%; border-collapse: collapse; font-size: 15px; }
   td, th { padding: 7px 6px; border-bottom: 1px solid #3d5049; text-align: left; }
   .qr { background: #fff; border-radius: 12px; padding: 12px; text-align: center; }
-  .qr img { width: 100%; max-width: 260px; }
+  .qr img { width: 100%; max-width: 260px; cursor: zoom-in; }
   .qr .url { color: #333; font-size: 13px; word-break: break-all; margin-top: 6px; }
+  #qrOverlay { position: fixed; inset: 0; z-index: 100; background: #fff; cursor: zoom-out;
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+  #qrOverlay.hidden { display: none; }
+  #qrOverlay img { width: min(78vmin, 700px); image-rendering: pixelated; }
+  #qrOverlay .biglabel { color: #222; font-size: clamp(18px, 2.6vw, 30px); font-weight: 700; word-break: break-all; text-align: center; padding: 0 20px; }
+  #qrOverlay .hint { color: #999; font-size: 15px; }
   .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; margin-left: 6px; }
   .on { background: #2f6b5e; color: #d6f0e6; }
   .off { background: #55423d; color: #e8c9c2; }
@@ -158,6 +164,12 @@
 
 </div>
 
+<div id="qrOverlay" class="hidden">
+  <img id="qrBigImg" alt="참가용 QR 코드 (확대)">
+  <div class="biglabel" id="qrBigUrl"></div>
+  <div class="hint">화면을 클릭하면 원래 화면으로 돌아갑니다</div>
+</div>
+
 <audio id="startSound" src="/sounds/start.m4a" preload="auto"></audio>
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -169,6 +181,12 @@ const fmt = (n) => Number(n).toLocaleString('ko-KR');
 const joinUrl = location.origin + '/';
 $('qrImg').src = '/qr?text=' + encodeURIComponent(joinUrl);
 $('joinUrl').textContent = joinUrl;
+
+// QR 클릭 → 전체 화면 확대, 다시 클릭 → 원래 화면
+$('qrBigImg').src = '/qr?text=' + encodeURIComponent(joinUrl) + '&size=1000';
+$('qrBigUrl').textContent = joinUrl;
+$('qrImg').onclick = () => $('qrOverlay').classList.remove('hidden');
+$('qrOverlay').onclick = () => $('qrOverlay').classList.add('hidden');
 
 $('itemsText').value = [
   '명문대,10,허영', '의대,15,허영', '외모지상,10,허영', '인플루언서,10,허영', '억대연봉,15,허영',
