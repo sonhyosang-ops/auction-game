@@ -46,10 +46,17 @@
   .mycard.value { background: #e7f3ef; border: 1px solid #9fcfbf; color: #1d5c4c; }
   .mycard.none { background: #eef1f6; border: 1px solid #c3cde0; color: #3d4d6b; }
   .hidden { display: none; }
+  .verse { background: #fffaf0; border: 1px solid #dcce9e; border-radius: 14px; padding: 18px 16px;
+         margin-bottom: 14px; color: #5a4a26; line-height: 1.85; word-break: keep-all;
+         font-size: clamp(15px, 4.4vw, 21px); font-weight: 600; }
+  .verse .ref { display: block; margin-top: 8px; text-align: right; color: #a08b55;
+         font-size: clamp(12px, 3.4vw, 16px); font-weight: 400; }
 </style>
 </head>
 <body>
 <div class="wrap">
+
+  <div id="verseCard" class="verse hidden">📖 “돈을 사랑함이 일만 악의 뿌리가 되나니 이것을 탐내는 자들은 미혹을 받아 믿음에서 떠나 많은 근심으로써 자기를 찔렀도다”<span class="ref">— 디모데전서 6장 10절</span></div>
 
   <div id="joinView" class="card">
     <h1>⏳ 인생 경매 입장</h1>
@@ -155,6 +162,8 @@ document.querySelectorAll('#bidGrid button').forEach((btn) => {
 socket.on('state', (s) => {
   S = s;
   clockOffset = s.serverNow - Date.now();
+  // 말씀 카드: 입장 전이라도 호스트가 켜면 보여준다
+  $('verseCard').classList.toggle('hidden', !s.verseShown);
   render();
 });
 

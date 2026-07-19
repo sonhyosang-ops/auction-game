@@ -67,6 +67,7 @@ function newGame() {
     endsAt: null,
     participants: {}, // token -> { id, nickname, points, connected, committedItemId }
     lastResult: null,
+    verseShown: false, // 호스트가 '말씀' 버튼으로 토글 — 모든 화면에 말씀 표시
   };
 }
 state = newGame();
@@ -107,6 +108,7 @@ function snapshot() {
     serverNow: Date.now(),
     endsAt: state.endsAt,
     lastResult: state.lastResult,
+    verseShown: state.verseShown,
     activeIndex: state.activeIndex,
     items: state.items.map((it) => ({
       id: it.id,
@@ -323,6 +325,12 @@ io.on('connection', (socket) => {
     if (state.activeIndex < 0) return cb && cb({ ok: false, error: '진행 중인 물품이 없습니다.' });
     finishActiveItem();
     if (cb) cb({ ok: true });
+  });
+
+  socket.on('host:verse', (data, cb) => {
+    state.verseShown = !state.verseShown;
+    if (cb) cb({ ok: true, shown: state.verseShown });
+    broadcast();
   });
 
   socket.on('host:reset', (data, cb) => {
