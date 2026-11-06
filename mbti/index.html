@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>나의 성격 탐험</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>" />
+</head>
+<body>
+  <div class="bg-deco" aria-hidden="true">
+    <span>⭐</span><span>☁️</span><span>🌈</span><span>✨</span><span>🎈</span><span>☁️</span>
+  </div>
+
+  <!-- 1. 시작 화면 -->
+  <main id="screen-start" class="screen active">
+    <div class="card start-card">
+      <div class="mascot">🧭</div>
+      <h1>나의 성격 탐험</h1>
+      <p class="lead">12개의 재미있는 질문으로 <b>나만의 성격 유형</b>을 알아보아요!<br />정답은 없어요. 마음 가는 대로 골라 주세요 😊</p>
+
+      <form id="start-form" autocomplete="off">
+        <label class="field">
+          <span>내 이름</span>
+          <input id="in-name" type="text" maxlength="10" placeholder="예) 김하늘" required />
+        </label>
+        <div class="field">
+          <span>학년</span>
+          <div class="grade-row" role="radiogroup" aria-label="학년">
+            <label><input type="radio" name="grade" value="1" /><b>1</b></label>
+            <label><input type="radio" name="grade" value="2" /><b>2</b></label>
+            <label><input type="radio" name="grade" value="3" /><b>3</b></label>
+            <label><input type="radio" name="grade" value="4" /><b>4</b></label>
+            <label><input type="radio" name="grade" value="5" /><b>5</b></label>
+            <label><input type="radio" name="grade" value="6" /><b>6</b></label>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-big" type="submit">탐험 시작! 🚀</button>
+      </form>
+
+      <p class="privacy">🔒 입력한 내용과 결과는 어디에도 저장되지 않아요. 결과지를 인쇄하면 바로 지워져요.</p>
+    </div>
+
+    <details class="teacher" id="teacher">
+      <summary>⚙️ 선생님 설정 <span id="ai-badge" class="badge off">AI 해설 꺼짐</span></summary>
+      <div class="teacher-body">
+        <p>Claude API 키를 넣으면 학생의 답변에 맞춘 <b>AI 맞춤 해설</b>이 결과지에 들어가요.
+          키가 없어도 기본 해설로 결과지를 인쇄할 수 있어요.</p>
+        <label class="field small">
+          <span>Claude API 키</span>
+          <input id="in-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="teacher-actions">
+          <button id="btn-key-save" class="btn btn-small" type="button">저장</button>
+          <button id="btn-key-clear" class="btn btn-small btn-ghost" type="button">키 지우기</button>
+        </div>
+        <p class="hint">키는 이 브라우저 탭에만 임시로 보관되고 탭을 닫으면 사라져요. 학생 이름은 AI로 보내지 않아요.
+          공용 PC에서는 수업이 끝나면 꼭 “키 지우기”를 눌러 주세요.</p>
+      </div>
+    </details>
+  </main>
+
+  <!-- 2. 질문 화면 -->
+  <main id="screen-quiz" class="screen">
+    <div class="quiz-top">
+      <button id="btn-back" class="btn btn-ghost btn-small" type="button">← 이전</button>
+      <div class="progress" aria-hidden="true">
+        <div class="progress-fill" id="progress-fill"></div>
+        <div class="progress-runner" id="progress-runner">🚀</div>
+      </div>
+      <div class="progress-num" id="progress-num">1 / 12</div>
+    </div>
+    <div class="card quiz-card" id="quiz-card">
+      <div class="q-num" id="q-num">Q1</div>
+      <h2 class="q-text" id="q-text"></h2>
+      <div class="choices">
+        <button class="choice" id="choice-a" type="button">
+          <span class="choice-emoji"></span><span class="choice-text"></span><kbd>1</kbd>
+        </button>
+        <button class="choice" id="choice-b" type="button">
+          <span class="choice-emoji"></span><span class="choice-text"></span><kbd>2</kbd>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. 분석 중 -->
+  <main id="screen-loading" class="screen">
+    <div class="card loading-card">
+      <div class="loader"><span>🔍</span></div>
+      <h2 id="loading-title">나의 성격을 분석하고 있어요…</h2>
+      <p id="loading-msg">조금만 기다려 주세요!</p>
+    </div>
+  </main>
+
+  <!-- 4. 결과 -->
+  <main id="screen-result" class="screen">
+    <div class="result-bar">
+      <div class="result-hello" id="result-hello"></div>
+      <div class="result-actions">
+        <button id="btn-print" class="btn btn-primary" type="button">🖨️ 결과지 인쇄하기</button>
+        <button id="btn-reset" class="btn btn-ghost" type="button">처음으로 (삭제)</button>
+      </div>
+    </div>
+    <div class="sheet-wrap" id="sheet-wrap">
+      <div class="sheet-scale" id="sheet-scale"></div>
+    </div>
+  </main>
+
+  <!-- 인쇄 후 확인 -->
+  <div class="modal" id="modal-after" hidden>
+    <div class="card modal-card">
+      <div class="mascot small">🖨️</div>
+      <h2>인쇄가 잘 되었나요?</h2>
+      <p><b id="countdown">20</b>초 뒤에 결과가 자동으로 삭제되고 처음 화면으로 돌아가요.</p>
+      <div class="modal-actions">
+        <button id="btn-done" class="btn btn-primary" type="button">네! 지금 삭제하기 ✅</button>
+        <button id="btn-reprint" class="btn btn-ghost" type="button">다시 인쇄할래요</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

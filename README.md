@@ -94,3 +94,10 @@ npm start
 ---
 
 🤖 이 프로젝트는 [Claude Code](https://claude.com/claude-code)와 함께 만들었습니다.
+
+
+---
+
+## 🧭 함께 들어 있는 앱: 초등학생용 간이 MBTI
+
+`mbti/` 폴더에 GitHub Pages로 배포되는 성격 탐험 웹앱이 있습니다. 자세한 내용은 [mbti/README.md](mbti/README.md)를 보세요.
